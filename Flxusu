@@ -1,0 +1,72 @@
+import requests
+import discord
+from discord.ext import commands
+from urllib.parse import urlparse, parse_qs
+import asyncio
+
+TOKEN = #coloque token do seu bot
+
+intents = discord.Intents.default()
+intents.message_content = True
+
+client = commands.Bot(command_prefix='.', intents=intents)
+
+estimated_time = 2
+
+@client.event
+async def on_ready():
+    print("âœ…ESTOU ONLINE")
+    print("âœ… Utilize .key link: (key)")
+
+@client.command(name="key", description="Ignorar chave Fluxus Para Seu")
+async def key(ctx, link: str):
+    parsed_url = urlparse(link)
+    hwid = parse_qs(parsed_url.query).get('HWID', [''])[0]
+    # Continue processing as usual
+
+    if hwid:
+        url = "https://stickx.top/api-fluxus/?hwid="
+        complete_url = f"{url}{hwid}"
+
+        wait_message = await ctx.send(f"<@{ctx.author.id}> Aguarde enquanto o bot recupera a chave...")
+
+        await asyncio.sleep(estimated_time)
+
+        response = requests.get(complete_url)
+
+        if response.status_code == 200:
+            json_data = response.json()
+            key = json_data.get("key", "")
+            if key:
+                # Copiar chave para o clipboard
+                pyperclip.copy(key)
+
+                # Criar embed Discord
+                embed = discord.Embed(title=f"Sua chave :key:{ctx.author.display_name}:key: ", description=f"```{key}```", color=0xF35359)
+                embed.set_footer(text=f"Criado por: Beyzin")
+
+                # Adicionar imagem ao embed
+                embed.set_image(url="https://media.discordapp.net/attachments/1206452638565138433/1207982008031248406/standard.gif?ex=65e19fe9&is=65cf2ae9&hm=dfbab4a7a9f3999189e044c8c1d6fe7a845503dc0330ef718a3936347321bf28&=")
+
+                # Enviar embed e mensagem
+                await ctx.send(embed=embed)
+                await ctx.send(f"<@{ctx.author.id}> :key: O bot gerou automaticamente uma chave para vocÃª, basta colar no jogo:key: ")
+
+                # Excluir mensagem temporÃ¡ria
+                await wait_message.delete()
+            else:
+                await ctx.send("Nenhuma `chave` encontrada na resposta da API")
+        else:
+            await ctx.send("Falha ao recuperar dados da API")
+    else:
+        await ctx.send("Formato de URL invÃ¡lido ou HWID nÃ£o encontrado")
+
+@key.error
+async def key_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Por favor, insira a URL corretamente e tente novamente.")
+    else:
+        # Mencionar o autor do comando e enviar mensagem de erro
+        await ctx.send(f"{ctx.author.mention} Ocorreu um erro ao processar o comando. Por favor, tente novamente.")
+
+client.run(TOKEN)
